@@ -31,9 +31,19 @@ export default function PortalForm({ portalId, onClose, defaults }: { portalId?:
   function save() {
     if (portal) {
       updatePortal(portal.id, { name, x, z, y })
-    } else {
-      addPortal({ name, dim: selectedDim as Dimension, x, z, y })
+      onClose?.()
+      return
     }
+
+    // creating new portal: prevent duplicates in same dim
+    const existing = useStore.getState().portals.find(p => p.dim === selectedDim && p.x === x && p.z === z)
+    if (existing) {
+      // inform user and do not add
+      alert('Ya existe un portal en esas coordenadas en esta dimensión. Edita el existente si quieres cambiarlo.')
+      return
+    }
+
+    addPortal({ name, dim: selectedDim as Dimension, x, z, y })
     onClose?.()
   }
 

@@ -9,11 +9,11 @@ export default function Sidebar() {
   const selectedDim = useStore(s => s.selectedDim)
   const setSelectedDim = useStore(s => s.setSelectedDim)
   const addPortal = useStore(s => s.addPortal)
-  const dedupePortals = useStore(s => s.dedupePortals)
 
   const [q, setQ] = useState('')
 
   const filtered = portals.filter(p => p.dim === selectedDim && p.name.toLowerCase().includes(q.toLowerCase()))
+  const setSelectedPortal = useStore(s => s.setSelectedPortal)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalDefaults, setModalDefaults] = useState<{ name?: string; x?: number; z?: number; y?: number } | undefined>(undefined)
@@ -63,7 +63,7 @@ export default function Sidebar() {
       <div className="flex-1 overflow-auto">
         {filtered.map((p: Portal) => (
           <div key={p.id} className="p-2 border-b flex justify-between items-center">
-            <div>
+            <div onClick={() => setSelectedPortal(p.id)} style={{ cursor: 'pointer' }}>
               <div className="font-medium">{p.name}</div>
               <div className="text-sm text-slate-500">x:{p.x} z:{p.z}</div>
             </div>
@@ -94,17 +94,7 @@ export default function Sidebar() {
           Import
           <input type="file" accept="application/json" onChange={importJSON} className="hidden" />
         </label>
-        <button
-          className="px-3 py-2 border rounded"
-          onClick={() => {
-            const removed = dedupePortals()
-            if (removed > 0) {
-              alert(`Eliminados ${removed} portales duplicados.`)
-            } else {
-              alert('No se encontraron duplicados.')
-            }
-          }}
-        >Eliminar duplicados</button>
+        {/* Eliminado: botón de eliminar duplicados */}
       </div>
       {modalOpen && (
         <PortalForm

@@ -9,6 +9,7 @@ type UIState = {
   stageScale: number
   stagePos: { x: number; y: number }
   drawingPathId: string | null
+  selectedPortalId: string | null
 }
 
 type AppState = WorldState & UIState & {
@@ -22,6 +23,7 @@ type AppState = WorldState & UIState & {
   setStageScale: (s: number) => void
   setStagePos: (x: number, y: number) => void
   setDrawingPathId: (id: string | null) => void
+  setSelectedPortal: (id: string | null) => void
 }
 
 const STORAGE_KEY = 'rm:worldstate:v1'
@@ -30,6 +32,7 @@ export const useStore = create<AppState>(persist((set, get) => ({
   portals: [],
   paths: [],
   selectedDim: 'overworld',
+  selectedPortalId: null,
   stageScale: 1,
   stagePos: { x: 0, y: 0 },
   drawingPathId: null,
@@ -56,6 +59,7 @@ export const useStore = create<AppState>(persist((set, get) => ({
   setStagePos: (x, y) => set(() => ({ stagePos: { x, y } })),
   setDrawingPathId: (id) => set(() => ({ drawingPathId: id }))
   ,
+  setSelectedPortal: (id) => set(() => ({ selectedPortalId: id })),
   dedupePortals: () => {
     const before = get().portals.length
     const seen = new Set<string>()
