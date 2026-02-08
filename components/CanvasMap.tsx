@@ -29,13 +29,17 @@ export default function CanvasMap() {
   useEffect(() => {
     function updateSize() {
       const el = containerRef.current
+      const isLarge = typeof window !== 'undefined' && window.innerWidth >= 1024
       if (el) {
         const r = el.getBoundingClientRect()
-        const w = Math.max(200, Math.round(r.width - 24))
-        const h = Math.max(200, Math.round(r.height - 160))
+        const containerW = r.width
+        const w = Math.max(200, isLarge ? Math.round(containerW * 0.95) : Math.round(containerW - 12))
+        const h = Math.max(200, Math.round(r.height - 12))
         setStageSize({ width: w, height: h })
       } else {
-        setStageSize({ width: Math.max(200, window.innerWidth - 40), height: Math.max(200, window.innerHeight - 160) })
+        const w = Math.max(200, isLarge ? Math.round(window.innerWidth * 0.95) : window.innerWidth - 40)
+        const h = Math.max(200, Math.round(window.innerHeight - 40))
+        setStageSize({ width: w, height: h })
       }
     }
     updateSize()
@@ -167,20 +171,22 @@ export default function CanvasMap() {
   return (
     <div ref={containerRef} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
 
-      <div style={{ position: 'absolute', left: 12, right: 12, top: 12, height: 48, zIndex: 30 }}>
-        <div style={{ background: 'rgba(255,255,255,0.95)', padding: 8, borderRadius: 6, display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ fontWeight: 700 }}>Map</div>
-          <div>Dim: <strong>{selectedDim}</strong></div>
-          <div>Coords: <strong>{pointerWorld ? (pointerWorld.x + ', ' + pointerWorld.z) : '—'}</strong></div>
-          <div style={{ marginLeft: 'auto' }}>
-            <button onClick={() => setModalPortalId('new')} style={{ padding: '6px 10px' }}>Agregar portal</button>
-            <button onClick={() => setAutoFit(f => !f)} style={{ marginLeft: 8, padding: '6px 8px' }}>{autoFit ? 'Auto-fit: ON' : 'Auto-fit: OFF'}</button>
+      <div className="absolute left-3 right-3 top-3 z-40 pointer-events-none">
+        <div className="pointer-events-auto mx-auto bg-slate-900/60 backdrop-blur-sm text-white p-3 rounded-lg shadow-md flex items-center gap-4" style={{ width: stageSize.width }}>
+          <div className="flex items-center gap-6">
+            <div className="font-semibold">Map</div>
+            <div className="text-sm">Dim: <strong className="font-medium">{selectedDim}</strong></div>
+            <div className="text-sm">Coords: <strong className="font-medium">{pointerWorld ? (pointerWorld.x + ', ' + pointerWorld.z) : '—'}</strong></div>
+          </div>
+          <div style={{ marginLeft: 'auto' }} className="flex gap-3 items-center">
+            <button className="px-3 py-1 rounded bg-emerald-400 text-slate-900 font-semibold shadow" onClick={() => setModalPortalId('new')}>Agregar portal</button>
+            <button className={`px-3 py-1 rounded ${autoFit ? 'bg-sky-600 text-white' : 'bg-slate-700 text-white/90'} font-medium`} onClick={() => setAutoFit(f => !f)}>{autoFit ? 'Auto-fit: ON' : 'Auto-fit: OFF'}</button>
           </div>
         </div>
       </div>
 
-      <div style={{ position: 'absolute', left: 12, right: 12, top: 64, bottom: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: stageSize.width, height: stageSize.height, background: '#071023' }}>
+      <div className="absolute left-3 right-3 top-3 bottom-3 flex items-center justify-center">
+        <div className="rounded-lg shadow-2xl overflow-hidden mx-auto" style={{ width: stageSize.width, height: stageSize.height, background: '#071023' }}>
           <Stage width={stageSize.width} height={stageSize.height} onWheel={handleWheel} ref={stageRef} onMouseMove={handleMouseMove}>
             <Layer>
               <Group x={groupPos.x} y={groupPos.y} scaleX={groupScale} scaleY={groupScale} draggable onDragEnd={handleDragEnd}>
@@ -214,35 +220,7 @@ export default function CanvasMap() {
         </div>
       </div>
 
-      <div style={{ position: 'absolute', left: 12, right: 12, bottom: 0, zIndex: 30 }}>
-        <div style={{ background: 'rgba(255,255,255,0.95)', padding: 8, borderRadius: '8px 8px 0 0' }}>
-          <div style={{ fontWeight: 700 }}>Portales — {dimPortals.length}</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-            {dimPortals.map(p => (
-              <div key={p.id} style={{ padding: 6, border: '1px solid #ddd', borderRadius: 6, minWidth: 140, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }} onClick={() => {
-                  const viewW = stageSize.width
-                  const viewH = stageSize.height
-                  const worldX = p.x * baseScale * groupScale
-                  const worldY = p.z * baseScale * groupScale
-                  setGroupPos({ x: viewW / 2 - worldX, y: viewH / 2 - worldY })
-                  setModalPortalId(p.id)
-                }}>{p.name} ({p.x},{p.z})</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => {
-                    const viewW = stageSize.width
-                    const viewH = stageSize.height
-                    const worldX = p.x * baseScale * groupScale
-                    const worldY = p.z * baseScale * groupScale
-                    setGroupPos({ x: viewW / 2 - worldX, y: viewH / 2 - worldY })
-                  }}>C</button>
-                  <button onClick={() => setModalPortalId(p.id)}>E</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Portal list moved below the map (see components/PortalList.tsx) */}
 
       {modalPortalId !== null && (
         <PortalForm portalId={modalPortalId === 'new' ? undefined : modalPortalId ?? undefined} defaults={modalPortalId === 'new' && pointerWorld ? { x: pointerWorld.x, z: pointerWorld.z } : undefined} onClose={() => setModalPortalId(null)} />
