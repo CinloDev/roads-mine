@@ -10,6 +10,9 @@ type UIState = {
   stagePos: { x: number; y: number }
   drawingPathId: string | null
   selectedPortalId: string | null
+  portalModalOpen: boolean
+  portalModalDefaults?: { name?: string; x?: number; z?: number; y?: number }
+  requestAutoFitCounter?: number
 }
 
 type AppState = WorldState & UIState & {
@@ -24,6 +27,8 @@ type AppState = WorldState & UIState & {
   setStagePos: (x: number, y: number) => void
   setDrawingPathId: (id: string | null) => void
   setSelectedPortal: (id: string | null) => void
+  setPortalModalOpen: (open: boolean, defaults?: { name?: string; x?: number; z?: number; y?: number }) => void
+  requestAutoFit: () => void
 }
 
 const STORAGE_KEY = 'rm:worldstate:v1'
@@ -33,6 +38,9 @@ export const useStore = create<AppState>(persist((set, get) => ({
   paths: [],
   selectedDim: 'overworld',
   selectedPortalId: null,
+  portalModalOpen: false,
+  portalModalDefaults: undefined,
+  requestAutoFitCounter: 0,
   stageScale: 1,
   stagePos: { x: 0, y: 0 },
   drawingPathId: null,
@@ -60,6 +68,8 @@ export const useStore = create<AppState>(persist((set, get) => ({
   setDrawingPathId: (id) => set(() => ({ drawingPathId: id }))
   ,
   setSelectedPortal: (id) => set(() => ({ selectedPortalId: id })),
+  setPortalModalOpen: (open, defaults) => set(() => ({ portalModalOpen: open, portalModalDefaults: defaults })),
+  requestAutoFit: () => set(state => ({ requestAutoFitCounter: (state.requestAutoFitCounter ?? 0) + 1 })),
   dedupePortals: () => {
     const before = get().portals.length
     const seen = new Set<string>()

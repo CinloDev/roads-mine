@@ -24,17 +24,19 @@ export default function CanvasMap() {
   const [autoFit, setAutoFit] = useState(true)
   const prevCount = useRef<number>(portals.length)
 
-  const [sidebarWidth, setSidebarWidth] = useState(320)
-  const [stageSize, setStageSize] = useState({ width: Math.max(200, window.innerWidth - sidebarWidth - 40), height: Math.max(200, window.innerHeight - 200) })
+  const [stageSize, setStageSize] = useState({ width: 300, height: 300 })
 
   useEffect(() => {
     function updateSize() {
-      const aside = document.querySelector('aside') as HTMLElement | null
-      const sbw = aside ? Math.round(aside.getBoundingClientRect().width) : 0
-      setSidebarWidth(sbw)
-      const w = Math.max(200, (window.innerWidth || 1200) - sbw - 40)
-      const h = Math.max(200, (window.innerHeight || 800) - 160)
-      setStageSize({ width: w, height: h })
+      const el = containerRef.current
+      if (el) {
+        const r = el.getBoundingClientRect()
+        const w = Math.max(200, Math.round(r.width - 24))
+        const h = Math.max(200, Math.round(r.height - 160))
+        setStageSize({ width: w, height: h })
+      } else {
+        setStageSize({ width: Math.max(200, window.innerWidth - 40), height: Math.max(200, window.innerHeight - 160) })
+      }
     }
     updateSize()
     window.addEventListener('resize', updateSize)
@@ -56,6 +58,7 @@ export default function CanvasMap() {
 
   const dimPortals = portals.filter(p => p.dim === selectedDim)
   const dimPaths = paths.filter(p => p.dim === selectedDim)
+  const requestAutoFitCounter = useStore(s => s.requestAutoFitCounter)
 
   // compute world bounds for current dimension
   const worldXs: number[] = []
@@ -77,6 +80,8 @@ export default function CanvasMap() {
 
   // update baseScale to fit world bounds into stage area (only when stageSize or portals change)
   useEffect(() => {
+    // if an external request to auto-fit was issued, enable autoFit so the effect below recenters
+    if (typeof requestAutoFitCounter !== 'undefined') setAutoFit(true)
     const w = stageSize.width
     const h = stageSize.height
     const fitScaleX = w / Math.max(1, worldWidthBlocks)
@@ -95,7 +100,7 @@ export default function CanvasMap() {
       setGroupPos({ x: stageSize.width / 2 - cx, y: stageSize.height / 2 - cz })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stageSize.width, stageSize.height, portals.length, paths.length, selectedDim])
+  }, [stageSize.width, stageSize.height, portals.length, paths.length, selectedDim, requestAutoFitCounter])
 
   // center on selected portal when user clicks it in the sidebar
   useEffect(() => {
@@ -160,7 +165,7 @@ export default function CanvasMap() {
   }
 
   return (
-    <div ref={containerRef} style={{ position: 'fixed', left: sidebarWidth + 'px', top: 0, width: 'calc(100% - ' + sidebarWidth + 'px)', height: '100vh', overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
 
       <div style={{ position: 'absolute', left: 12, right: 12, top: 12, height: 48, zIndex: 30 }}>
         <div style={{ background: 'rgba(255,255,255,0.95)', padding: 8, borderRadius: 6, display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -189,12 +194,20 @@ export default function CanvasMap() {
                   <Line key={path.id} points={path.points.flatMap((pt: Point) => [pt.x * baseScale, pt.z * baseScale])} stroke="#94a3b8" strokeWidth={2} lineCap="round" lineJoin="round" />
                 ))}
 
-                {dimPortals.map(portal => (
-                  <Group key={portal.id}>
-                    <Circle x={portal.x * baseScale} y={portal.z * baseScale} radius={Math.max(4, 8 * baseScale)} fill="#34d399" />
-                    <Text x={portal.x * baseScale + 12} y={portal.z * baseScale - 6} text={portal.name} fontSize={Math.max(10, 12 * baseScale)} fill="#cbd5e1" />
-                  </Group>
-                ))}
+                {dimPortals.map(portal => {
+                  const MIN_PORTAL_PIX = 6 // minimum radius in screen pixels
+                  const MIN_FONT_PIX = 10 // minimum font size in screen pixels
+                  const nominalRadius = Math.max(4, 8 * baseScale)
+                  const radiusProp = Math.max(nominalRadius, MIN_PORTAL_PIX / Math.max(1e-6, groupScale))
+                  const nominalFont = Math.max(10, 12 * baseScale)
+                  const fontProp = Math.max(nominalFont, MIN_FONT_PIX / Math.max(1e-6, groupScale))
+                  return (
+                    <Group key={portal.id}>
+                      <Circle x={portal.x * baseScale} y={portal.z * baseScale} radius={radiusProp} fill="#34d399" />
+                      <Text x={portal.x * baseScale + 12} y={portal.z * baseScale - 6} text={portal.name} fontSize={fontProp} fill="#cbd5e1" />
+                    </Group>
+                  )
+                })}
               </Group>
             </Layer>
           </Stage>
